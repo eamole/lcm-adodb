@@ -1,0 +1,9 @@
+extends ../layout
+
+block content
+    h2 Tables in Database
+    ul
+    each table in schema
+        li
+            a(href="tables/#{table.TABLE_NAME}")  #{table.TABLE_NAME}
+            a(href="tables/scan/#{table.TABLE_NAME}")  Scan

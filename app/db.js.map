@@ -1,0 +1,13 @@
+{
+  "version": 3,
+  "file": "db.js",
+  "sourceRoot": "",
+  "sources": [
+    "db.coffee"
+  ],
+  "names": [],
+  "mappings": ";AAAA;AAAA,MAAA,KAAA,EAAA,EAAA,EAAA,KAAA,EAAA;;EAAA,KAAA,GAAQ,OAAA,CAAQ,YAAR;;EAEF,KAAN,MAAA,GAAA;IACE,WAAc,MAAA,MAAA,WAAA,QAA4B,MAA5B,CAAA;MAAC,IAAC,CAAA;MAAK,IAAC,CAAA;MAAK,IAAC,CAAA;MAAS,IAAC,CAAA;MACpC,IAAsE,oDAAtE;QAAA,IAAC,CAAA,UAAD,GAAc,CAAA,4BAAA,CAAA,CAA+B,SAA/B,CAAyC,UAAzC,EAAd;;MACA,IAAC,CAAA,IAAD,GAAQ,IAAC,CAAA,IAAD,GAAQ,IAAC,CAAA;MACjB,IAAC,CAAA,QAAD,GAAY;MACZ,IAAC,CAAA,MAAD,GAAQ;MACR,IAAC,CAAA,UAAD,GAAc,CAAA,YAAA,CAAA,CAAe,IAAC,CAAA,IAAhB,CAAA;MACd,IAAC,CAAA,QAAD,GAAY;IANA;;IAQd,OAAU,CAAA,CAAA;MACR,IAAC,CAAA,GAAD,GAAO,KAAK,CAAC,IAAN,CAAW,CAAA,CAAA,CAAG,IAAC,CAAA,QAAJ,EAAA,CAAA,CAAgB,IAAC,CAAA,UAAjB,EAAA,CAAA,CAA+B,IAAC,CAAA,UAAhC,CAAA,CAAX;aACP,IAAC,CAAA,QAAD,GAAU;IAFF;;IAIV,SAAY,CAAA,CAAA;MACV,IAAc,CAAI,IAAC,CAAA,SAAnB;QAAA,IAAC,CAAA,OAAD,CAAA,EAAA;;aACA,IAAC,CAAA,GACC,CAAC,MADH,CACU,EADV,CAEE,CAAC,IAFH,CAEQ,IAAC,CAAA,MAAD,CAAQ,QAAA,CAAA,CAAA,EAAA,CAAR,CAFR;IAFU;;IAQZ,QAAW,CAAC,IAAD,CAAA;AACT,UAAA;MAAA,KAAA,GAAQ,IAAI,KAAJ,CAAU,IAAV,EAAY,IAAZ;MACR,IAAC,CAAA,MAAO,CAAA,IAAA,CAAR,GAAgB;aAChB;IAHS;;EArBb;;EA0BM,QAAN,MAAA,MAAA;IACE,WAAc,GAAA,OAAA,CAAA;MAAC,IAAC,CAAA;MAAG,IAAC,CAAA;IAAN;;IAEd,QAAW,CAAC,IAAD,EAAM,IAAN,CAAA;AACT,UAAA;MAAA,KAAA,GAAQ,IAAI,KAAJ,CAAU,IAAV,EAAY,IAAZ,EAAiB,IAAjB;aACR;IAFS;;EAHb;;EAOM,QAAN,MAAA,MAAA;IACE,WAAc,OAAA,OAAA,OAAA,MAAA,CAAA;MAAC,IAAC,CAAA;MAAM,IAAC,CAAA;MAAK,IAAC,CAAA;MAAK,IAAC,CAAA;IAArB;;EADhB;;EAGA,OAAA,CAAQ,EAAR,EAAW,KAAX,EAAiB,KAAjB;AAtCA",
+  "sourcesContent": [
+    "ADODB = require('node-adodb');\r\n\r\nclass Db\r\n  constructor : (@name,@path,@password,@ext=\".mdb\") ->\r\n    @passString = \"Jet OLEDB:Database Password=#{AERLINGUS}{password}\" if password?\r\n    @file = @path + @ext\r\n    @provider = 'Provider=Microsoft.ACE.OLEDB.12.0'\r\n    @tables=[];\r\n    @dataSource = \"Data Source=#{@file}\"\r\n    @onnected = false;\r\n\r\n  connect : ->\r\n    @cnn = ADODB.open \"#{@provider};#{@dataSource};#{@passString}\"\r\n    @onnected=true;\r\n\r\n  getTables : ->\r\n    @connect() if not @connected\r\n    @cnn\r\n      .schema 20\r\n      .then @schema ->\r\n        \r\n\r\n\r\n  addTable : (name) ->\r\n    table = new Table(@,name)\r\n    @tables[name] = table\r\n    table\r\n\r\nclass Table\r\n  constructor : (@db,@name) ->\r\n\r\n  addField : (name,type) ->\r\n    field = new Field @,name,type\r\n    field\r\n\r\nclass Field\r\n  constructor : (@table,@name,@type,@args) ->\r\n\r\nexports Db,Table,Field\r\n"
+  ]
+}

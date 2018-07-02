@@ -1,0 +1,13 @@
+extends ../layout
+
+block content
+    h1 Table #{tableName}
+    table
+        thead
+            tr
+            each value,index in columns[0]
+              td #{index}
+        each column in columns
+            tr
+                each field in column
+                    td #{field}
