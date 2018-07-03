@@ -1,9 +1,10 @@
 extends ../layout
 
 block content
-    h2 Tables in Database
+    h2 #{title}
     ul
-    each table in schema
+    // -var tables=['table1','table2']
+    each table in tables
         li
-            a(href="tables/#{table.TABLE_NAME}")  #{table.TABLE_NAME}
-            a(href="tables/scan/#{table.TABLE_NAME}")  Scan
+            a(href="tables/#{table.name}")  #{table.name}
+            a(href="tables/scan/#{table.name}")  Scan

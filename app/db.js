@@ -5,31 +5,49 @@
   ADODB = require('node-adodb');
 
   Db = class Db {
-    constructor(name1, path, password1, ext = ".mdb") {
+    constructor(name1, path, password, ext = ".mdb") {
       this.name = name1;
       this.path = path;
-      this.password = password1;
+      this.password = password;
       this.ext = ext;
-      if (typeof password !== "undefined" && password !== null) {
-        this.passString = `Jet OLEDB:Database Password=${AERLINGUS}{password}`;
+      this.passString = "";
+      if (this.password != null) {
+        this.passString = `Jet OLEDB:Database Password=${this.password}`;
       }
       this.file = this.path + this.ext;
       this.provider = 'Provider=Microsoft.ACE.OLEDB.12.0';
       this.tables = [];
       this.dataSource = `Data Source=${this.file}`;
-      this.onnected = false;
+      this.connected = false;
     }
 
     connect() {
-      this.cnn = ADODB.open(`${this.provider};${this.dataSource};${this.passString}`);
-      return this.onnected = true;
+      var cnnString;
+      cnnString = `${this.provider};${this.dataSource};${this.passString}`;
+      this.cnn = ADODB.open(cnnString);
+      return this.connected = true;
     }
 
-    getTables() {
+    getTables(cb) {
       if (!this.connected) {
         this.connect();
       }
-      return this.cnn.schema(20).then(this.schema(function() {}));
+      return this.cnn.schema(20).then((schema) => { // fat for @ in promise
+        var i, len, ref, results, table, tableObj;
+        this.schema = schema;
+        ref = this.schema;
+        results = [];
+        for (i = 0, len = ref.length; i < len; i++) {
+          tableObj = ref[i];
+          table = this.addTable(tableObj['TABLE_NAME']);
+          results.push(table.getFields());
+        }
+        return results;
+      }).then(function() {
+        return cb();
+      }).catch(function(e) {
+        return console.log(`getTables Error : ${e} `);
+      });
     }
 
     addTable(name) {
@@ -45,27 +63,51 @@
     constructor(db, name1) {
       this.db = db;
       this.name = name1;
+      this.fields = [];
     }
 
-    addField(name, type) {
+    getFields() {
+      return this.db.cnn.schema(4, [null, null, this.name]).then((schema) => { // fat for @ in promise
+        var column, i, len, ref, results;
+        this.schema = schema;
+        ref = this.schema;
+        results = [];
+        for (i = 0, len = ref.length; i < len; i++) {
+          column = ref[i];
+          results.push(this.addField(column));
+        }
+        return results;
+      }).catch(function(e) {
+        return console.log(`getFields Error : ${e}`);
+      });
+    }
+
+    addField(column) {
       var field;
-      field = new Field(this, name, type);
+      field = new Field(this, column);
+      this.fields[field.name] = field;
       return field;
     }
 
   };
 
   Field = class Field {
-    constructor(table1, name1, type1, args) {
+    constructor(table1, column1) {
+      var e;
       this.table = table1;
-      this.name = name1;
-      this.type = type1;
-      this.args = args;
+      this.column = column1;
+      try {
+        this.name = this.column['COLUMN_NAME'];
+        this.itype = this.column['DATA_TYPE'];
+      } catch (error) {
+        e = error;
+        console.log(`Field Error : ${e}`);
+      }
     }
 
   };
 
-  exports(Db, Table, Field);
+  module.exports = Db;
 
 }).call(this);
 
