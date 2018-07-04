@@ -1,13 +1,13 @@
 extends ../layout
-
 block content
+    code= table.dump()
     h1 Table #{tableName}
-    table
-        thead
-            tr
-            each value,index in columns[0]
-              td #{index}
-        each column in columns
-            tr
-                each field in column
-                    td #{field}
+    //table
+    //    thead
+    //        tr
+    //        each value,index in table.fields[0]
+    //          td #{index}
+    //    each field in table.fields
+    //        tr
+    //            each attr in field
+    //                td #{attr}

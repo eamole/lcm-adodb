@@ -8,7 +8,7 @@
 module.exports = function routes() {
   this.root('pages#main');
   this.match("/tables" , "tables#index");
-  this.match("/tables/:name" , "tables#show");
+  this.match("/tables/show/:name" , "tables#show");
   this.match("/tables/scan/:name" , "tables#scan");
 
 

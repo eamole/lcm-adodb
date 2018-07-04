@@ -4,8 +4,44 @@
 
   ADODB = require('node-adodb');
 
+  ({
+    adodb: {
+      schemaEnum: {
+        columns: 4,
+        indexes: 12,
+        procedures: 16,
+        tables: 20,
+        providerTypes: 22,
+        views: 23,
+        foreignKeys: 27,
+        primaryKeys: 28,
+        members: 38
+      },
+      typeEnum: {
+        empty: 0,
+        smallInt: 2,
+        integer: 3,
+        single: 4,
+        double: 5,
+        currency: 6,
+        date: 7,
+        bstr: 8,
+        idispatch: 9,
+        error: 10,
+        boolean: 11,
+        variant: 12,
+        iunknown: 13,
+        decimal: 14,
+        tinyInt: 15,
+        unsignedTinyInt: 16
+      }
+    }
+  });
+
   Db = class Db {
     constructor(name1, path, password, ext = ".mdb") {
+      // kludge - should return a promise!! - instead using a callback!! needs to be bound
+      this.getTables = this.getTables.bind(this);
       this.name = name1;
       this.path = path;
       this.password = password;
@@ -19,6 +55,7 @@
       this.tables = [];
       this.dataSource = `Data Source=${this.file}`;
       this.connected = false;
+      this.cache = new JsonCache(`storage/db/${this.name}/`, "tables", this.getTables);
     }
 
     connect() {
@@ -28,7 +65,15 @@
       return this.connected = true;
     }
 
-    getTables(cb) {
+    getTable(name) {
+      var table;
+      if (this.tables[name] == null) {
+        console.log(`table [${name} not found in database.tables`);
+      }
+      return table = this.tables[name];
+    }
+
+    getTables(cb) { // fat - used as a static callback
       if (!this.connected) {
         this.connect();
       }
@@ -39,14 +84,42 @@
         results = [];
         for (i = 0, len = ref.length; i < len; i++) {
           tableObj = ref[i];
-          table = this.addTable(tableObj['TABLE_NAME']);
-          results.push(table.getFields());
+          results.push(table = this.addTable(tableObj['TABLE_NAME']));
+        }
+        return results;
+      //          table.getFields()
+      }).then(function() {
+        return cb();
+      }).catch(function(e) {
+        return console.log(`getTables Error : ${e} `);
+      });
+    }
+
+    // single query retuirns all fields, which give you all tables as well
+    getFields(cb) {
+      if (!this.connected) {
+        this.connect();
+      }
+      return this.db.cnn.schema(4, [null, null, null]).then((schema) => { // fat for @ in promise
+        var fieldObj, i, len, ref, results, table, tableName;
+        this.schema = schema;
+        ref = this.schema;
+        results = [];
+        for (i = 0, len = ref.length; i < len; i++) {
+          fieldObj = ref[i];
+          tableName = tableObj['TABLE_NAME'];
+          if (this.tables[tableName] == null) {
+            // check if already exists
+            table = this.addTable(this, tableName);
+          }
+          table = this.tables[tableName];
+          results.push(table.addField(fieldObj));
         }
         return results;
       }).then(function() {
         return cb();
       }).catch(function(e) {
-        return console.log(`getTables Error : ${e} `);
+        return console.log(`getFields Error : ${e} `);
       });
     }
 
@@ -64,6 +137,10 @@
       this.db = db;
       this.name = name1;
       this.fields = [];
+    }
+
+    dump() {
+      return console.log(`Hello from table ${this.name}`);
     }
 
     getFields() {

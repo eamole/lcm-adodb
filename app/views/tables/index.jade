@@ -2,9 +2,15 @@ extends ../layout
 
 block content
     h2 #{title}
+    // how to call a controller action
+    //button(onclick='#tables/rescan') Click
+
+    a.button(href='tables/rescan') Rescan
     ul
-    // -var tables=['table1','table2']
+
+    // -var tables=,'table2']
+    div #{tables.length}
     each table in tables
         li
-            a(href="tables/#{table.name}")  #{table.name}
+            a(href="tables/show/#{table.name}")  #{table.name}
             a(href="tables/scan/#{table.name}")  Scan
