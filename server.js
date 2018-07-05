@@ -1,3 +1,5 @@
+global.__basedir = __dirname;
+
 var locomotive = require('locomotive')
   , bootable = require('bootable');
 

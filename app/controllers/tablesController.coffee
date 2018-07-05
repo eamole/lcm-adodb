@@ -3,6 +3,7 @@ Controller = locomotive.Controller
 
 Db = require('../db');
 
+
 primary = new Db "primary" , "E:\\ResMgr\\amdex\\resmanager" , "AERLINGUS"
 snapshot = new Db "snapshot" , "E:\\ResMgr\\amdex\\resmanager_snapshot"
 
@@ -18,7 +19,7 @@ class TC extends Controller
   # this needs to run to load the table data
   index : ->
     console.log "TC.index()"
-    @primary.getTables @showAll
+    @primary.getFields @showAll
 
   showAll : =>
     console.log "TC.showAll()"

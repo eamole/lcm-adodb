@@ -26,7 +26,7 @@
     // this needs to run to load the table data
     index() {
       console.log("TC.index()");
-      return this.primary.getTables(this.showAll);
+      return this.primary.getFields(this.showAll);
     }
 
     showAll() {

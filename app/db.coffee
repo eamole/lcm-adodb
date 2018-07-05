@@ -1,7 +1,8 @@
 ADODB = require('node-adodb');
+JsonCache = require "./utils"
 
 # ADO constants
-adodb :
+adodb =
   schemaEnum :
     columns : 4
     indexes : 12
@@ -16,7 +17,7 @@ adodb :
   typeEnum :
     empty : 0
     smallInt : 2
-    integer : 3
+    integer : 3     # default number/autonumber 10 places
     single : 4
     double : 5
     currency : 6
@@ -30,6 +31,9 @@ adodb :
     decimal : 14
     tinyInt : 15
     unsignedTinyInt : 16
+    wchar : 130   # unicode string
+
+
 
 class Db
   constructor : (@name,@path,@password,@ext=".mdb") ->
@@ -37,10 +41,11 @@ class Db
     @passString = "Jet OLEDB:Database Password=#{@password}" if @password?
     @file = @path + @ext
     @provider = 'Provider=Microsoft.ACE.OLEDB.12.0'
-    @tables=[];
     @dataSource = "Data Source=#{@file}"
     @connected = false;
-    @cache = new JsonCache "storage/db/#{@name}/" , "tables" , @getTables
+    # the cache should really be bound to a method or property/getter - later
+    @cacheTables = new JsonCache "storage/db/#{@name}/" , "adodb-table-list" , @adodbGetTables , @adodbTablesReceived
+    @cacheFields = new JsonCache "storage/db/#{@name}/" , "tables" , @adodbGetFields , @adodbFieldsReceived
 
   connect : ->
     cnnString = "#{@provider};#{@dataSource};#{@passString}"
@@ -51,21 +56,66 @@ class Db
     console.log "table [#{name} not found in database.tables" if not @tables[name]?
     table = @tables[name]
 
-  # kludge - should return a promise!! - instead using a callback!! needs to be bound
-  getTables : (cb) =>           # fat - used as a static callback
+    # actually already have the data below!! but should really allow the cache to play with it before using it
+  adodbTablesReceived : (@tableList) =>  # @ in promise/cb
+    # this is not indexed!
+    #    @tables = @tableList.map (tableName) => # @ inside cb
+    #      new Table(@,tableName)
+    @tables = {}
+    for tablename in @tableList
+      table = new Table @,tablename
+      @tables[tablename]=table
+
+
+  adodbGetTables : (cb) =>
     @connect() if not @connected
     @cnn.schema 20
       .then (@schema) =>  # fat for @ in promise
-        for tableObj in @schema
-          table = @addTable tableObj['TABLE_NAME']
-#          table.getFields()
-      .then ->
-        cb(); # TODO : cb kludge - should be promise
+        @tableList = @schema.map (adoRec) -> adoRec['TABLE_NAME']
+        # @adodbTablesReceived @tableList // cyclic will be called below - why specify separately???
+        # will be called after cache has been saved
+        cb @tableList    # cache.onRefresh + showAll!!
       .catch (e) ->
-        console.log "getTables Error : #{e} "
+        console.log "adodbGetTables Error : #{e} "
 
-  # single query retuirns all fields, which give you all tables as well
-  getFields : (cb) ->
+# kludge - should return a promise!! - instead using a callback!! needs to be bound
+  getTables : (cb) =>      #showAll     # fat - used as a static callback
+## use the cache
+    if @tables
+      cb @tables
+    else
+      @cacheTables.getData(cb)  #showAll
+
+  getFields : (cb) =>      #showAll     # fat - used as a static callback
+## use the cache
+    if @fields
+      cb @fields
+    else
+      @cacheFields.getData(cb)  #showAll
+
+  adodbFieldsReceived : (@tables) =>  # @ in promise/cb - should really use the rawFieldlist here
+      console.log "why here"
+  adodbGetFields : (cb) =>
+    @connect() if not @connected
+    @cnn.schema 4 # , [null,null,null]   # get ALL fields in db
+      .then (@schema) =>  # fat for @ in promise
+        tableList = @schema.map (ado)->
+          ado['TABLE_NAME']
+        @tableList = [...new Set(tableList)]  # unique tables as list
+        # construct the @tables
+        for ado in @schema
+          tableName = ado['TABLE_NAME']
+          # check if already exists
+          @tables={} if not @tables?
+          table = @addTable tableName if not @tables[tableName]?
+          table = @tables[tableName]
+          table.addField ado
+        cb @tables    # cache.onRefresh + showAll!!
+      .catch (e) ->
+        console.log "adodbGetFields Error : #{e} "
+
+# single query retuirns all fields, which give you all tables as well
+  xgetFields : (cb) ->
     @connect() if not @connected
     @db.cnn.schema 4 , [null,null,null]
       .then (@schema) =>  # fat for @ in promise
@@ -88,7 +138,7 @@ class Db
 
 class Table
   constructor : (@db,@name) ->
-    @fields=[]
+    @fields={}
 
   dump : ->
     console.log "Hello from table #{@name}"
@@ -106,12 +156,53 @@ class Table
     @fields[field.name]=field
     field
 
+  toJSON : (key) => # fat @
+    if key?
+      name : @name
+      fields : @fields
+    else
+      @
+
+
 
 class Field
-  constructor : (@table,@column) ->
+  @types : {}
+  constructor : (@table,@ado) ->
+
     try
-      @name = @column['COLUMN_NAME']
-      @itype = @column['DATA_TYPE']
+      @name = @ado['COLUMN_NAME']
+      @itype = @ado['DATA_TYPE']
+      @type = Field.types[@itype]
+      @ord = @ado['ORDINAL_POSITION']
+      @size = @ado['CHARACTER_MAXIMUM_LENGTH'] || @ado['NUMERIC_PRECISION']
+      @nullable = @ado['IS_NULLABLE']
+      @hasDefault = @ado['COLUMN_HAS_DEFAULT']
+      @default = @ado['COLUMN_DEFAULT']
+
     catch e
       console.log "Field Error : #{e}"
+  # static
+  @getTypes : ->
+    # invert the enums above
+    for value,key of adodb.typeEnum
+      @types[key]=value
+
+  toJSON : (key) =>
+    # need to remove backpointer table!!
+    name : @name
+    itype : @itype
+    type : @type
+    ord : @ord
+    size : @size
+    nullable : @nullable
+    hasDefault : @hasDefault
+    default : @default
+
+#    o={}
+#    for v,k of @
+#      o[k] = v if k not in ["table","ado"]
+#    o
+# static call
+Field.getTypes()
+
 module.exports = Db
