@@ -1,6 +1,21 @@
-fs = require 'fs'
+fs = require 'fs-extra'
 sha256 = require "sha256"
 mkdirp = require 'mkdirp'
+
+pathExists = (path) ->
+  if not fs.existsSync path
+    mkdirp path, (err) ->
+      if err
+        console.error("Error : Utils.pathExists() : #{err}")
+      else
+        console.log "Utils.pathExists() : #{path} created"
+
+writeFile = (path,filename,data) ->
+  try
+    pathExists path   # might have to pop name off
+    fs.writeFileSync path+filename , data
+  catch e
+    console.error "Error : Utils.WriteFile() #{path} #{filename}  : #{e}"
 
 class Cache
   constructor : (@storagePath , @fileExt) ->
@@ -11,12 +26,6 @@ class Cache
   path : ->
     __basedir + "/" + @storagePath  # storagePath has /
 
-  pathExists : ->
-    path = @path()
-    if not fs.existsSync path
-      mkdirp path, (err) ->
-        if err console.error err
-        else console.log "#{path} created"
 
 # a static filename used to cache the data
 class JsonCache extends Cache
@@ -30,7 +39,7 @@ class JsonCache extends Cache
     try
       @strData = JSON.stringify(@data,null,4)   # write raw text - 4 = PRETTY
       #@lastSha = sha256(data)       # compute sha
-      @pathExists()
+      @pathExists @path()
       fs.writeFileSync @filename(), @strData
       @onDataAvailable @data
 
@@ -38,7 +47,7 @@ class JsonCache extends Cache
       console.log "Json Error : cannot encode #{e}"
 
 
-  getData : (cb) -> #showAll
+  getData : () -> #showAll
     if not fs.existsSync @filename() # this is a first call or file doesn't exist
       console.log "Cache [#{@storagePath}]: file [@filename()] not exists - refresh data "
       @cacheRefreshed = true  # reset counter
@@ -46,7 +55,7 @@ class JsonCache extends Cache
       # creating a sync block after a sync action
       @cbRefreshData (data) =>
         @onRefresh data
-        cb @data
+#        cb @data
 
     else  # load from file
       console.log "Cache [#{@storagePath}]: file [@filename()] exists - load data "
@@ -55,7 +64,8 @@ class JsonCache extends Cache
       @cacheRefreshed = false;  # maybe a counter here
       # bind to correct property and process raw data
       @onDataAvailable @data    # do whatever processing required - eg map to property!!
-      cb @data  # call immediately
+#      cb @data  # call immediately
+      return Promise.resolve @data
 
   filename : ->
     fileName = super @fileName
@@ -74,4 +84,4 @@ class JsonCacheSha extends JsonCache
     if not @lastSha? or notExists = not fs.existsSync @filename() # this is a first call or file doesn't exist
       console.log "Cache [#{@storagePath}]: first call - no sha - re-read data " if not @lastSha?
 
-module.exports=JsonCache
+module.exports={JsonCache,pathExists,writeFile}

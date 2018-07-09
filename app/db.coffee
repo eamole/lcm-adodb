@@ -1,7 +1,19 @@
-ADODB = require('node-adodb');
-JsonCache = require "./utils"
+ADODB = require './adodb'    # require('node-adodb');
+{JsonCache,pathExists,writeFile} = require "./utils"
+fs = require 'fs-extra'
 
-# ADO constants
+#Provider=Microsoft.ACE.OLEDB.12.0;Data Source=E:\ResMgr\amdex\resmanager;Jet OLEDB:Database Password=AERLINGUS
+
+table_id = 0; # used to generate table ids
+
+promise = (fn) ->
+  new Promise (resolve,reject) ->
+    try
+      resolve fn()
+    catch e
+      reject e
+
+  # ADO constants
 adodb =
   schemaEnum :
     columns : 4
@@ -34,9 +46,10 @@ adodb =
     wchar : 130   # unicode string
 
 
-
 class Db
   constructor : (@name,@path,@password,@ext=".mdb") ->
+    @storagePath = "storage/db/#{@name}/"
+    pathExists @storagePath
     @passString = ""
     @passString = "Jet OLEDB:Database Password=#{@password}" if @password?
     @file = @path + @ext
@@ -44,13 +57,20 @@ class Db
     @dataSource = "Data Source=#{@file}"
     @connected = false;
     # the cache should really be bound to a method or property/getter - later
-    @cacheTables = new JsonCache "storage/db/#{@name}/" , "adodb-table-list" , @adodbGetTables , @adodbTablesReceived
-    @cacheFields = new JsonCache "storage/db/#{@name}/" , "tables" , @adodbGetFields , @adodbFieldsReceived
+    @cacheTables = new JsonCache @storagePath, "adodb-table-list" , @adodbGetTables , @adodbTablesReceived
+    @cacheFields = new JsonCache @storagePath, "tables" , @adodbGetFields , @adodbFieldsReceived
+    @tables={}
+
 
   connect : ->
     cnnString = "#{@provider};#{@dataSource};#{@passString}"
     @cnn = ADODB.open cnnString
     @connected=true;
+
+  query : (sql) ->
+    @connect() if not @connected
+    data = @cnn.query(sql)
+    data
 
   getTable : (name) ->
     console.log "table [#{name} not found in database.tables" if not @tables[name]?
@@ -86,15 +106,21 @@ class Db
     else
       @cacheTables.getData(cb)  #showAll
 
-  getFields : (cb) =>      #showAll     # fat - used as a static callback
-## use the cache
+  # should rewrite this using promises
+  getFields : () =>      #showAll     # fat - used as a static callback
+    # use the cache
     if @fields
-      cb @fields
+      return Promise.resolve @fields
     else
-      @cacheFields.getData(cb)  #showAll
+      @cacheFields.getData()  #showAll
 
-  adodbFieldsReceived : (@tables) =>  # @ in promise/cb - should really use the rawFieldlist here
-      console.log "why here"
+  adodbFieldsReceived : (tables) =>  # @ in promise/cb - should really use the rawFieldlist here
+      console.log "convert json data to table/field objects"
+      # this called after the cache has been read AND after the data has been received from adodb
+      # process the json data
+      for k,v of tables   # its an object not array
+        Table.fromJson(@,v)
+
   adodbGetFields : (cb) =>
     @connect() if not @connected
     @cnn.schema 4 # , [null,null,null]   # get ALL fields in db
@@ -117,7 +143,7 @@ class Db
 # single query retuirns all fields, which give you all tables as well
   xgetFields : (cb) ->
     @connect() if not @connected
-    @db.cnn.schema 4 , [null,null,null]
+    @cnn.schema 4 , [null,null,null]
       .then (@schema) =>  # fat for @ in promise
         for fieldObj in @schema
           tableName = tableObj['TABLE_NAME']
@@ -133,17 +159,105 @@ class Db
 
   addTable : (name) ->
     table = new Table(@,name)
-    @tables[name] = table
+#    @tables[name] = table
     table
 
 class Table
+  #statics
+  @filenameData : "data.json"
+  @filenameMetadata : "metadata.json"
   constructor : (@db,@name) ->
+    @id = ++table_id if not @id
+    @primaryKey = "" if not @primaryKey
     @fields={}
+    @db.tables[@name]=@
+    @count = 0
+    @storagePath = @db.storagePath + "#{@name}/"
+    pathExists @storagePath
+    fields=[] # temp holder ousteide scope
+    fs.exists @storagePath + Table.filenameMetadata , (exists) =>
+      if exists
+        @unpersistMetadata()
+# only needed if metadata changes
+#          .then =>
+#            fields = Object.values(@fields)
+#            fields.sort (a,b) ->
+#              a.ord - b.ord
+#          .then =>
+#            #convert array back to object
+#            @fields = {}  # reset
+#            for field in fields
+#              @fields[field.name]=field
+#          .then =>
+#            @persistMetadata()
+
+  meta : ->
+    #only needed if metadata changes
+    fields = Object.values(@fields)
+    fields.sort (a,b) ->
+      a.ord - b.ord
+    #convert array back to object
+    @fields = {}  # reset
+    for field in fields
+      @fields[field.name]=field
+    @persistMetadata()
+
+
+
+  # this is largely redundant
+  @fromJson : (db , tableJson) ->
+    console.log "Dint forget to get rid of static Table.fromJson being used to load from fields file "
+    table = db.addTable(tableJson.name)
+  #    table.count = tableJson.count if tableJson.count?
+    for k,fieldJson of tableJson.fields   # obj not array
+      Field.fromJson(table,fieldJson)
+
+  # restore this object
+  _fromJson : (json) ->
+    @id = json.id if json.id?
+    @name = json.name
+    @primaryKey = json.primaryKey if json.primaryKey?
+    @count = json.count
+    @fields = json.fields
+
+  toJSON : (key) => # fat @
+    if key?
+      id : @id
+      name : @name
+      primaryKey : @primaryKey
+      count : @count
+      fields : @fields
+    else
+      @
+
 
   dump : ->
     console.log "Hello from table #{@name}"
 
-  getFields : ->
+  # lets try code this with a promise!! - adodb returns promise
+  adodbGetCount : ->
+    @db.query("SELECT count(*) as count FROM #{@name};")
+      .then (data) =>
+      # adodb returns funny structure for expressions such as count
+        @count = data[0].Expr1000  # its an array with 1 value
+        console.log "Record count #{@name} : #{@count}"
+      .catch (err) =>
+        console.log "Table.getCount()",err
+
+  # reads data into cache
+  adodbGetData : ->
+    @db.query "SELECT * FROM #{@name};"
+      .then (@data) =>
+#        @data = []  # this will probably be a keyed object, once I've set the keys
+#        for k,row in data
+#          @data.push data
+      .then => # fat @
+        @count = @data.length
+        @persistMetadata()
+      .then =>  # fat @
+        @persistData()
+
+  adodbGetFields : ->
     @db.cnn.schema 4 , [null,null,@name]
       .then (@schema) =>  # fat for @ in promise
         for column in @schema
@@ -151,37 +265,84 @@ class Table
       .catch (e) ->
         console.log "getFields Error : #{e}"
 
-  addField : (column) ->
-    field = new Field @,column
-    @fields[field.name]=field
+  addAdodbField : (ado) ->
+    field = Field.fromAdodb @,ado
+#    @fields[field.name]=field
     field
 
-  toJSON : (key) => # fat @
-    if key?
-      name : @name
-      fields : @fields
-    else
-      @
+  unpersistMetadata : ->
+    filename = @storagePath + Table.filenameMetadata
+    fs.exists(filename)
+      .then (exists) =>
+        fs.readFile(filename)
+          .then (data) =>
+            json = JSON.parse(data)
+            @_fromJson json
 
+  unpersistData : ->
+    filename = @storagePath + Table.filenameData
+    fs.exists(filename)
+      .then (exists) =>
+        fs.readFile(filename)
+          .then (data) =>
+            @data = JSON.parse(data)
+
+  # saves the table meta data
+  persistData  : ->
+    data = JSON.stringify(@data,null,2)
+    writeFile @storagePath , Table.filenameData, data
+
+  # save meta
+  persistMetadata : ->
+    data = JSON.stringify(@,null,2)
+    promise =>
+      writeFile @storagePath , Table.filenameMetadata , data
+
+
+  getData : ->
+    if @data
+      Promise.resolve @data
+    else
+      filename = @storagePath + Table.filenameData
+      fs.exists(filename)
+        .then (exists) =>
+          if exists
+            @unpersistData()
+          else
+            @adodbGetData()
 
 
 class Field
   @types : {}
-  constructor : (@table,@ado) ->
+  constructor : (@table,@name) ->
+    @table.fields[@name] = @
 
+  # static
+  @fromAdodb : (table,ado) ->
     try
-      @name = @ado['COLUMN_NAME']
-      @itype = @ado['DATA_TYPE']
-      @type = Field.types[@itype]
-      @ord = @ado['ORDINAL_POSITION']
-      @size = @ado['CHARACTER_MAXIMUM_LENGTH'] || @ado['NUMERIC_PRECISION']
-      @nullable = @ado['IS_NULLABLE']
-      @hasDefault = @ado['COLUMN_HAS_DEFAULT']
-      @default = @ado['COLUMN_DEFAULT']
+      name = @ado['COLUMN_NAME']
+
+      f = new Field(table,name)
+
+      f.itype = ado['DATA_TYPE']
+      f.type = Field.types[f.itype]
+      f.ord = ado['ORDINAL_POSITION']
+      f.size = ado['CHARACTER_MAXIMUM_LENGTH'] || ado['NUMERIC_PRECISION']
+      f.nullable = ado['IS_NULLABLE']
+      f.hasDefault = ado['COLUMN_HAS_DEFAULT']
+      f.default = ado['COLUMN_DEFAULT']
 
     catch e
       console.log "Field Error : #{e}"
-  # static
+    f # return
+
+  @fromJson : (table,fieldJson) ->
+    f = new Field table , fieldJson.name
+    # i don't think any special processing is required
+    f = Object.assign(f,fieldJson)
+#    table.fields[fieldJson.name] = f
+    f
+
   @getTypes : ->
     # invert the enums above
     for value,key of adodb.typeEnum

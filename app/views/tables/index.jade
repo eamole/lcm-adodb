@@ -6,11 +6,31 @@ block content
     //button(onclick='#tables/rescan') Click
 
     a.button(href='tables/rescan') Rescan
-    ul
+
+    a.button(href='tables/getRecordCounts') Get Record Counts
 
     // -var tables=,'table2']
-    div #{tables.length}
-    each table in tables
-        li
-            a(href="tables/show/#{table.name}")  #{table.name}
-            a(href="tables/scan/#{table.name}")  Scan
+    div Tables : #{tables.length}
+
+    table
+        each table in tables
+            tr
+                td
+                    a(href="tables/show/#{table.name}")  #{table.name}
+                td #{table.count}
+                td
+                    a(href="tables/read/#{table.name}")  Read
+                td
+                    a(href="tables/scan/#{table.name}")  Scan
+                td
+                    a(href="tables/count/#{table.name}")  Count
+                td
+                    a(href="tables/meta/#{table.name}")  Meta Read/Write
+                td
+                    a(href="tables/inserts/#{table.name}")  Inserts
+                //td
+                //    a(href="tables/deletes/#{table.name}")  Deletes
+                //td
+                //    a(href="tables/updates/#{table.name}")  Updates
+
+
