@@ -1,9 +1,15 @@
 extends ../layout
 
 block content
+    script.
+        require(["/js/mvc/table/controller.js"]);
+
     h2 #{title}
     // how to call a controller action
     //button(onclick='#tables/rescan') Click
+    // use this syntax for micro templates - can't use jade inside!!
+    //script(type='text/html')#table_header
+    // doesn't work
 
     a.button(href='tables/rescan') Rescan
 

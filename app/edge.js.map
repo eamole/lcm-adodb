@@ -1,0 +1,13 @@
+{
+  "version": 3,
+  "file": "edge.js",
+  "sourceRoot": "",
+  "sources": [
+    "edge.coffee"
+  ],
+  "names": [],
+  "mappings": ";AAAA;AAAA,MAAA;;EAAA,IAAA,GAAO,OAAA,CAAQ,SAAR;;EASP;;;;;;;;;;;;;;;;;;;;EAeA,MAAA,CAAO,OAAP,EAAiB,QAAA,CAAE,GAAF,EAAQ,IAAR,CAAA;AACf,QAAA,CAAA,EAAA,GAAA,EAAA,GAAA,EAAA;IAAA,IAAG,GAAH;aACE,OAAO,CAAC,KAAR,CAAc,GAAd,EADF;KAAA,MAAA;AAGE;MAAA,KAAA,sCAAA;;qBACE,OAAO,CAAC,GAAR,CAAY,GAAZ;MADF,CAAA;qBAHF;;EADe,CAAjB;AAxBA",
+  "sourcesContent": [
+    "edge = require 'edge-js'\r\n\r\n#`\r\n#    func = edge.func( 'sql' , function() { /*\r\n#      select * from bookings;\r\n#*/\r\n#    })\r\n#`\r\n\r\n`\r\n  var method = edge.func({\r\n      assemblyFile : '../../ConsoleApp2/ConsoleApp2/bin/Debug/Adodb.dll' ,\r\n      // typeNme : 'Adodb.Ado;db',\r\n      methodName : 'Inserts'\r\n  });\r\n\r\n  var payload = {\r\n      table : 'Bookings',\r\n      table_id : '34' ,\r\n      primary_key : 'ref'\r\n  }\r\n`\r\n\r\n\r\nmethod payload , ( err , data ) ->\r\n  if err\r\n    console.error err\r\n  else\r\n    for rec in data\r\n      console.log rec\r\n"
+  ]
+}

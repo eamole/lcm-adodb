@@ -1,0 +1,13 @@
+{
+  "version": 3,
+  "file": "controller.js",
+  "sourceRoot": "",
+  "sources": [
+    "controller.coffee"
+  ],
+  "names": [],
+  "mappings": ";AAAA;AAAA,MAAA,QAAA,EAAA,KAAA,EAAA,SAAA,EAAA,MAAA,EAAA,UAAA;IAAA;;EAAA,QAAA,GAAW,OAAA,CAAQ,UAAR;;EAIL,QAAN,MAAA,MAAA,QAAoB,QAAQ,CAAC,MAA7B;IACE,WAAc,CAAA,CAAA;;UAId,CAAA,eAAA,CAAA;MAFE,IAAC,CAAA,IAAD,CAAM,QAAN,EAAiB,IAAC,CAAA,QAAlB;IAFY;;IAId,QAAW,CAAA,CAAA;6BALP;IAKO;;EALb;;EAQM,SAAN,MAAA,OAAA,QAAqB,QAAQ,CAAC,WAA9B;IACE,WAAc,CAAA,CAAA;WACZ,CAAA;MACA,IAAC,CAAA,KAAD,GAAS;IAFG;;EADhB;;EAMM,aAAN,MAAA,WAAA,QAAyB,QAAQ,CAAC,KAAlC;IACE,WAAc,CAAA,CAAA;WACZ,CAAA;MACA,IAAC,CAAA,EAAD,GAAM,CAAA,CAAE,WAAF;IAFM;;EADhB;;EAOM,YAAN,MAAA,UAAA,QAAwB,QAAQ,CAAC,KAAjC;IACE,WAAc,CAAA,CAAA;WACZ,CAAA;MACA,IAAC,CAAA,EAAD,GAAM,CAAA,CAAA;IAFM;;EADhB;AAzBA",
+  "sourcesContent": [
+    "Backbone = require 'backbone'\r\n\r\n\r\n\r\nclass Table extends Backbone.Model\r\n  constructor : ->\r\n    super()\r\n    @bind \"change\" , @onChange\r\n\r\n  onChange : =>\r\n\r\n\r\nclass Tables extends Backbone.Collection\r\n  constructor : ->\r\n    super()\r\n    @model = Table\r\n\r\n\r\nclass TablesView extends Backbone.View\r\n  constructor : ->\r\n    super()\r\n    @el = $ \"#table-id\"\r\n\r\n\r\n\r\nclass TableView extends Backbone.View\r\n  constructor : ->\r\n    super()\r\n    @el = $()\r\n\r\n\r\n"
+  ]
+}

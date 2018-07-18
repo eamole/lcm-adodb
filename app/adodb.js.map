@@ -1,0 +1,13 @@
+{
+  "version": 3,
+  "file": "adodb.js",
+  "sourceRoot": "",
+  "sources": [
+    "adodb.coffee"
+  ],
+  "names": [],
+  "mappings": ";AAAA;AAAA,MAAA,KAAA,EAAA;;EAAA,IAAA,GAAO,OAAA,CAAQ,SAAR;;EAGD;IAAN,MAAA,MAAA;;YAaE,CAAA,YAAA,CAAA;YAaA,CAAA,iBAAA,CAAA;OAzBA;;;;MAKA,IAAO,CAAC,SAAD,CAAA;eACL;MADK,CALP;;;MASA,MAAS,CAAA,CAAA;eACP;MADO;;MAGT,KAAQ,CAAC,GAAD,CAAA;QAEN,IAAC,CAAA,YAAD,CAAc,OAAd;eACA,IAAC,CAAA,UAAD,CAAY;UAAC,GAAA,EAAM;QAAP,CAAZ;MAHM;;MAOR,YAAe,WAAA,CAAA;QAAC,IAAC,CAAA;eACf,IAAC,CAAA,MAAD,GAAU,IAAI,CAAC,IAAL,CAAU;UAClB,YAAA,EAAe,IAAC,CAAA,YADE;UAElB,UAAA,EAAa,IAAC,CAAA;QAFI,CAAV;MADG;;MAMf,UAAa,CAAC,UAAQ,CAAA,CAAT,CAAA;eACX,IAAI,OAAJ,CAAY,CAAC,OAAD,EAAS,MAAT,CAAA,GAAA;iBACV,IAAC,CAAA,MAAD,CAAQ,OAAR,EAAkB,CAAC,GAAD,EAAK,IAAL,CAAA,GAAA;YAChB,IAAG,GAAH;cACE,OAAO,CAAC,GAAR,CAAY,CAAA,cAAA,CAAA,CAAiB,GAAjB,CAAA,CAAZ;qBACA,MAAA,CAAO,GAAP,EAFF;aAAA,MAAA;qBAIE,OAAA,CAAQ,IAAR,EAJF;;UADgB,CAAlB;QADU,CAAZ;MADW;;IA1Bf;;oBACE,YAAA,GAAe;;oBACf,OAAA,GAAU;;;;;;EAkCZ,MAAM,CAAC,OAAP,GAAe,IAAI;AAvCnB",
+  "sourcesContent": [
+    "edge = require 'edge-js'\r\n\r\n\r\nclass adodb\r\n  assemblyFile : 'c:/dev/rmplus/ConsoleApp2/ConsoleApp2/bin/Debug/Adodb.dll'\r\n  typeNme : 'Adodb.Adodb'\r\n\r\n  #spoof node-adodb\r\n  # could actually send this I guess -\r\n  open : (cnnString) ->\r\n    @\r\n\r\n  # need to add this method to  c# class\r\n  schema : ->\r\n    @\r\n\r\n  query : (sql) =>\r\n    \r\n    @defineMethod 'Query'\r\n    @callMethod({sql : sql })\r\n\r\n\r\n\r\n  defineMethod : (@methodName) ->\r\n    @method = edge.func {\r\n      assemblyFile : @assemblyFile\r\n      methodName : @methodName\r\n    }\r\n\r\n  callMethod : (payload={}) =>\r\n    new Promise (resolve,reject) =>\r\n      @method payload , (err,data) =>\r\n        if err\r\n          console.log \"Adodb Error : #{err}\"\r\n          reject err\r\n        else\r\n          resolve data\r\n\r\n\r\nmodule.exports=new adodb"
+  ]
+}

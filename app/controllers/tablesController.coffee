@@ -1,8 +1,8 @@
 locomotive = require('locomotive')
 Controller = locomotive.Controller
 
-Db = require('../db');
-
+Db = require('../db')
+jade = require 'jade'
 
 primary = new Db "primary" , "E:\\ResMgr\\amdex\\resmanager" , "AERLINGUS"
 snapshot = new Db "snapshot" , "E:\\ResMgr\\amdex\\resmanager_snapshot"
@@ -11,20 +11,32 @@ snapshot = new Db "snapshot" , "E:\\ResMgr\\amdex\\resmanager_snapshot"
 class TC extends Controller
 
   constructor : ->
+    console.log "TC.constructor()"
     super()
     # not really much value in assigning them here - BUT do not recreate the objects - lose data!!
     @primary = primary
     @snapshot = snapshot
 
+  exrender : (name,tmpl) ->
+    # this needs to send precompiled jade templates to the browser
+
+    fn = jade.compileClient(tmpl , {name : name })
+
+    # include in the output
+    @templates[name] = fn
+
+    @super(name)
+
+
   # this needs to run to load the table data
   index : ->
     console.log "TC.index()"
-    @primary.getFields()
+    @primary.getFields()  # should possibly change this over to load meta for each file - not fields file
       .then =>
-        @showAll()     # should possibly change this over to load meta for each file - not fields file
+        @showAll()
 
   showAll : =>
-    console.log "TC.showAll()"
+    console.log "TC.showAll() - live reload? NO!! Oh!! Yes!!"
     @title="Tables in Database"
     # have to convert to array!! Can't iterate over objects apparently!!
     @tables=Object.values(@primary.tables) # locomotive filters all properties existing prior to action !!

@@ -1,0 +1,13 @@
+{
+  "version": 3,
+  "file": "backbone.js",
+  "sourceRoot": "",
+  "sources": [
+    "backbone.coffee"
+  ],
+  "names": [],
+  "mappings": ";AAAA;EAAA;;;;;;;AAAA,MAAA,QAAA,EAAA;;EAOA,IAAA,GAAO,OAAA,CAAQ,MAAR;;EAED,WAAN,MAAA,SAAA;IACE,WAAc,KAAA,CAAA,EAAA;MAAC,IAAC,CAAA;MACd,IAAC,CAAA,KAAD,GAAS,IAAC,CAAA;IADE,CAAd;;;;;IAMA,MAAS,CAAC,UAAD,EAAY,IAAZ,CAAA,EAAA;;EAPX,EATA;;;EAmBA,MAAM,CAAC,OAAP,GAAiB,IAAI;AAnBrB",
+  "sourcesContent": [
+    "# a node/backbone implementation\r\n# problem is backbone runs on the client, and I want some form of server side control\r\n# the backbone view may be a problems - must be rendered on the client, but generated on the server\r\n# this needs to generate stuff for inclusion in the template\r\n# maybe add some template helper functions\r\n# this should probably create a crud routing as well\r\n# might even generate static front end controllers, views and models\r\njade = require 'jade'\r\n\r\nclass Backbone\r\n  constructor : (@name) ->  # the MVC name, model and view\r\n    @model = @name\r\n\r\n  # need to do an inital render\r\n  # controller - this is the locomotive controller - need to add stuff to controller object\r\n  # view - name of jade file - should default to current action ala loco\r\n  render : (controller,view) ->\r\n    # need to insert the Models, Collection (maybe) and View(s)\r\n\r\nmodule.exports = new Backbone"
+  ]
+}
